@@ -1,5 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from ai_service import correct_text
+from pydantic import BaseModel
+
+
 
 # Initialize the FastAPI application instance
 app = FastAPI()
@@ -18,7 +22,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+class CorrectionRequest(BaseModel):
+    text: str
+
+    
 # Defines a root path GET endpoint
 @app.get("/")
 def read_root():
     return {"status": "success", "message": "FastAPI is initialized!"}
+
+# Route for submitting text for correction
+@app.post("/correct")
+async def correct(request: CorrectionRequest):
+
+    print("Received:", request.text)
+
+    corrected = await correct_text(request)
+
+    print("Gemini returned:", corrected)
+
+    return {
+        "corrected": corrected
+    }
