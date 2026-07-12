@@ -26,7 +26,7 @@ app.add_middleware(
 class CorrectionRequest(BaseModel):
     text: str
 
-    
+
 # Defines a root path GET endpoint
 @app.get("/")
 def read_root():
@@ -38,10 +38,8 @@ async def correct(request: CorrectionRequest):
 
     print("Received:", request.text)
 
-    corrected = await correct_text(request)
+    corrected = await correct_text(request.text)
 
-    print("Gemini returned:", corrected)
+    print("Model returned:", corrected)
 
-    return {
-        "corrected": corrected
-    }
+    return corrected

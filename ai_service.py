@@ -2,65 +2,75 @@ import os
 from openai import OpenAI
 from dotenv import load_dotenv
 from google import genai
+import json
 
 load_dotenv()
 
 
-# For Gemini Model
-
-client = genai.Client(
-    api_key=os.getenv("GEMINI_API_KEY")
+client = OpenAI(
+    api_key=os.getenv("MINIMAX_API_KEY"),
+    base_url="https://api.minimax.io/v1"
 )
+
 
 async def correct_text(text):
 
-    print("Calling Gemini...")
+    print("Calling MiniMax...")
 
-    response = client.models.generate_content(
-        model="gemini-flash-latest",
-        contents=f"""
-Correct the grammar.
+    print("Text received:", repr(text))
 
-Only return the corrected sentence.
+    response = client.chat.completions.create(
+        model="MiniMax-M2.7",
+        messages=[
+            {
+                "role": "system",
+                "content": """
+You are a multilingual language tutor.
 
-Sentence:
-{text}
+Correct the grammar of the user's text while preserving the original meaning and tone.
+
+Return ONLY valid JSON.
+
+The JSON must use exactly this structure:
+
+{
+    "text": "The complete corrected version of the user's text.",
+    "mistakes": [
+        {
+            "original": "The exact incorrect text from the user's input.",
+            "corrected": "The corrected version of that text.",
+            "explanation": "A short explanation of why the original was incorrect."
+        }
+    ]
+}
+
+Rules:
+- "text" must contain the complete corrected text.
+- Each grammar mistake must be a separate object in the "mistakes" array.
+- "original" must exactly match the incorrect text in the user's input.
+- "corrected" must contain the replacement text.
+- "explanation" must clearly explain the grammar rule or reason for the correction.
+- Preserve the language of the user's original text.
+- Do not translate the text.
+- Do not change correct text unnecessarily.
+- If there are no mistakes, return an empty "mistakes" array.
+- Do not include markdown.
+- Do not include code fences.
+- Do not include any text before or after the JSON object.
 """
+            },
+            {
+                "role": "user",
+                "content": text
+            }
+        ],
+        extra_body={
+            "reasoning_split": True
+        }
     )
 
-    print("Gemini finished")
+    print("MiniMax finished")
 
-    return response.text
+    res = response.choices[0].message.content
 
-
-
-
-# For GPT Model
-
-
-# client = OpenAI(
-#     api_key=os.getenv("OPENAI_API_KEY")
-# )
-
-
-# async def correct_text(text):
-
-#     print("Calling GPT...")
-
-#     response = client.chat.completions.create(
-#         model="gpt-4o-mini",
-#         messages=[
-#             {
-#                 "role": "system",
-#                 "content": "You are a language tutor. Correct grammar and only return the corrected sentence."
-#             },
-#             {
-#                 "role": "user",
-#                 "content": text
-#             }
-#         ]
-#     )
-
-#     print("GPT finished")
-
-#     return response.text
+    return json.loads(res)
